@@ -1,0 +1,434 @@
+import React, { useState } from 'react';
+import { PlusCircle, Trash2, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+
+export default function CollegeExpenseTracker() {
+  const [expenses, setExpenses] = useState([]);
+  const [currentSemester, setCurrentSemester] = useState('Semester 1');
+  const [formData, setFormData] = useState({
+    semester: 'Semester 1',
+    category: 'Fees',
+    description: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+
+  const semesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6', 'Semester 7', 'Semester 8'];
+
+  const categories = [
+    { name: 'Fees', color: '#3B82F6', icon: '🎓' },
+    { name: 'Hostel', color: '#8B5CF6', icon: '🏠' },
+    { name: 'Mess', color: '#10B981', icon: '🍽️' },
+    { name: 'Canteen', color: '#F59E0B', icon: '☕' },
+    { name: 'DMart', color: '#EC4899', icon: '🛒' },
+    { name: 'Books', color: '#EF4444', icon: '📚' },
+    { name: 'Transport', color: '#6366F1', icon: '🚌' },
+    { name: 'Stationery', color: '#F97316', icon: '✏️' },
+    { name: 'Entertainment', color: '#F472B6', icon: '🎬' },
+    { name: 'Medical', color: '#14B8A6', icon: '⚕️' },
+    { name: 'Miscellaneous', color: '#6B7280', icon: '📦' }
+  ];
+
+  const handleAddExpense = () => {
+    if (formData.description && formData.amount) {
+      const newExpense = {
+        id: Date.now(),
+        ...formData,
+        amount: parseFloat(formData.amount)
+      };
+      setExpenses([newExpense, ...expenses]);
+      setFormData({
+        semester: currentSemester,
+        category: 'Fees',
+        description: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+    }
+  };
+
+  const deleteExpense = (id) => {
+    setExpenses(expenses.filter(exp => exp.id !== id));
+  };
+
+  // Filter expenses by current semester
+  const semesterExpenses = expenses.filter(exp => exp.semester === currentSemester);
+  const totalExpenses = semesterExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+  // Category totals for current semester
+  const categoryTotals = categories.map(cat => ({
+    ...cat,
+    total: semesterExpenses
+      .filter(exp => exp.category === cat.name)
+      .reduce((sum, exp) => sum + exp.amount, 0)
+  }));
+
+  // Pie chart data
+  const pieChartData = categoryTotals
+    .filter(cat => cat.total > 0)
+    .map(cat => ({
+      name: cat.name,
+      value: cat.total,
+      color: cat.color
+    }));
+
+  // Bar chart data for all semesters
+  const semesterWiseData = semesters.map(sem => {
+    const semExpenses = expenses.filter(exp => exp.semester === sem);
+    return {
+      semester: sem.replace('Semester ', 'S'),
+      total: semExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+    };
+  });
+
+  // Monthly trend data for current semester
+  const getMonthlyData = () => {
+    const monthlyTotals = {};
+    semesterExpenses.forEach(exp => {
+      const month = exp.date.substring(0, 7); // YYYY-MM
+      monthlyTotals[month] = (monthlyTotals[month] || 0) + exp.amount;
+    });
+    return Object.entries(monthlyTotals)
+      .map(([month, total]) => ({
+        month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        amount: total
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  };
+
+  const monthlyData = getMonthlyData();
+
+  // DMart specific expenses
+  const dmartExpenses = semesterExpenses.filter(exp => exp.category === 'DMart');
+  const dmartTotal = dmartExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">College Expense Tracker</h1>
+          <p className="text-gray-600">Track all your college expenses semester-wise</p>
+        </div>
+
+        {/* Semester Selector */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Calendar className="w-6 h-6 text-blue-600" />
+            <span className="font-semibold text-gray-700">Select Semester:</span>
+            <div className="flex gap-2 flex-wrap">
+              {semesters.map(sem => (
+                <button
+                  key={sem}
+                  onClick={() => setCurrentSemester(sem)}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${
+                    currentSemester === sem
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {sem}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Semester Total</p>
+                <p className="text-3xl font-bold text-gray-800">₹{totalExpenses.toFixed(2)}</p>
+              </div>
+              <DollarSign className="w-12 h-12 text-blue-500 opacity-50" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Transactions</p>
+                <p className="text-3xl font-bold text-gray-800">{semesterExpenses.length}</p>
+              </div>
+              <TrendingUp className="w-12 h-12 text-green-500 opacity-50" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Average</p>
+                <p className="text-3xl font-bold text-gray-800">
+                  ₹{semesterExpenses.length > 0 ? (totalExpenses / semesterExpenses.length).toFixed(2) : '0.00'}
+                </p>
+              </div>
+              <div className="text-4xl opacity-50">📊</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-pink-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">DMart Expenses</p>
+                <p className="text-3xl font-bold text-gray-800">₹{dmartTotal.toFixed(2)}</p>
+              </div>
+              <div className="text-4xl opacity-50">🛒</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Pie Chart */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Expense Distribution - {currentSemester}</h2>
+            {pieChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `₹${value.toFixed(2)}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-500">
+                No expenses to display
+              </div>
+            )}
+          </div>
+
+          {/* Semester-wise Bar Chart */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Semester-wise Comparison</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={semesterWiseData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="semester" />
+                <YAxis />
+                <Tooltip formatter={(value) => `₹${value.toFixed(2)}`} />
+                <Bar dataKey="total" fill="#3B82F6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Monthly Trend Line Chart */}
+        {monthlyData.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Monthly Spending Trend - {currentSemester}</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => `₹${value.toFixed(2)}`} />
+                <Legend />
+                <Line type="monotone" dataKey="amount" stroke="#8B5CF6" strokeWidth={2} name="Amount" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* DMart Expenses Section */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            🛒 DMart Expenses - {currentSemester}
+          </h2>
+          <div className="mb-4 p-4 bg-pink-50 rounded-lg border border-pink-200">
+            <p className="text-lg font-semibold text-gray-800">
+              Total DMart Spending: <span className="text-pink-600">₹{dmartTotal.toFixed(2)}</span>
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {dmartExpenses.length} transaction(s) • {totalExpenses > 0 ? ((dmartTotal / totalExpenses) * 100).toFixed(1) : 0}% of total expenses
+            </p>
+          </div>
+          {dmartExpenses.length > 0 ? (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {dmartExpenses.map(expense => (
+                <div key={expense.id} className="flex items-center justify-between p-3 bg-pink-50 rounded-lg">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800">{expense.description}</h3>
+                    <p className="text-sm text-gray-500">{expense.date}</p>
+                  </div>
+                  <span className="text-lg font-bold text-pink-600">₹{expense.amount.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No DMart expenses for this semester</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Add Expense Form */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Add Expense</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
+                  <select
+                    value={formData.semester}
+                    onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {semesters.map(sem => (
+                      <option key={sem} value={sem}>{sem}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat.name} value={cat.name}>{cat.icon} {cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <input
+                    type="text"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Enter description"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Amount (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    placeholder="0.00"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <button
+                  onClick={handleAddExpense}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                  Add Expense
+                </button>
+              </div>
+            </div>
+
+            {/* Category Breakdown */}
+            <div className="bg-white rounded-xl shadow-lg p-6 mt-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Category Breakdown</h2>
+              <div className="space-y-3">
+                {categoryTotals.map(cat => {
+                  const maxTotal = Math.max(...categoryTotals.map(c => c.total), 1);
+                  return (
+                    <div key={cat.name}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-gray-700">
+                          {cat.icon} {cat.name}
+                        </span>
+                        <span className="text-sm font-bold text-gray-800">₹{cat.total.toFixed(2)}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full transition-all duration-500"
+                          style={{ 
+                            width: `${(cat.total / maxTotal) * 100}%`,
+                            backgroundColor: cat.color
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Expense List */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Recent Expenses - {currentSemester}</h2>
+              {semesterExpenses.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">No expenses for this semester yet. Add your first expense!</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {semesterExpenses.map(expense => {
+                    const category = categories.find(cat => cat.name === expense.category);
+                    return (
+                      <div
+                        key={expense.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <div 
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+                            style={{ backgroundColor: category.color + '20' }}
+                          >
+                            {category.icon}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-gray-800">{expense.description}</h3>
+                              <span className="text-xs px-2 py-1 bg-gray-200 rounded-full text-gray-600">
+                                {expense.category}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500">{expense.date}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xl font-bold text-gray-800">₹{expense.amount.toFixed(2)}</span>
+                          <button
+                            onClick={() => deleteExpense(expense.id)}
+                            className="text-red-500 hover:text-red-700 transition"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
