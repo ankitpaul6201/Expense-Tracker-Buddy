@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker Buddy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            text: '#f1f5f9'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { transition: background-color 0.3s, color 0.3s; }
+        .chart-container { position: relative; height: 300px; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .hidden { display: none !important; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-dark-bg dark:text-dark-text min-h-screen font-sans">
+
+    <div id="loginScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[url('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=2071&auto=format&fit=crop')] bg-cover bg-center">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative z-10 text-center space-y-6 p-10 bg-white/10 border border-white/20 rounded-3xl shadow-2xl backdrop-blur-md max-w-md w-full mx-4">
+            <div class="inline-block p-4 rounded-full bg-blue-600/20 mb-2">
+                <span class="text-6xl">💎</span>
+            </div>
+            <h1 class="text-4xl font-bold tracking-tight text-white">Expense Tracker Buddy <span class="text-blue-400">Pro</span></h1>
+            <p class="text-lg text-gray-200">Master your student finances with style.</p>
+            <button onclick="loginWithGoogle()" class="w-full group relative flex items-center justify-center gap-3 bg-white text-gray-900 px-8 py-4 rounded-xl text-lg font-bold shadow-lg hover:bg-gray-100 hover:scale-[1.02] transition-all duration-200">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
+                Continue with Google
+            </button>
+            <p id="loginStatus" class="text-sm text-blue-200 animate-pulse hidden">Securely connecting to Firebase...</p>
+        </div>
+    </div>
+
+    <div id="appScreen" class="hidden pb-20">
+        
+        <nav class="sticky top-0 z-40 bg-white/80 dark:bg-dark-card/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">💎</span>
+                        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Expense Tracker Buddy</h1>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <button onclick="toggleTheme()" class="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                            <span id="themeIcon" class="text-lg">🌙</span>
+                        </button>
+
+                        <div class="relative ml-2" id="profileDropdownContainer">
+                            <button id="profileBtn" onclick="toggleProfileMenu()" class="flex items-center gap-2 focus:outline-none p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                <img id="userPhoto" src="" class="h-9 w-9 rounded-full border-2 border-blue-500 shadow-sm object-cover">
+                                <svg class="w-4 h-4 text-gray-500 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+
+                            <div id="profileMenu" class="hidden absolute right-0 mt-2 w-60 bg-white dark:bg-dark-card rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 transform origin-top-right transition-all z-50 overflow-hidden">
+                                <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                                    <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Signed in as</p>
+                                    <p id="menuUserName" class="text-sm font-bold text-gray-900 dark:text-white truncate">User</p>
+                                </div>
+                                <div class="py-1">
+                                    <button onclick="loginWithGoogle(true)" class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
+                                        <span>➕</span> Add another account
+                                    </button>
+                                    <button onclick="logout()" class="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
+                                        <span>🚪</span> Sign Out
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+
+            <div class="mb-2 mt-2">
+                <h1 id="welcomeHeader" class="text-4xl md:text-5xl font-extrabold text-gray-800 dark:text-white tracking-tight">
+                    Hello <span class="text-blue-600">User</span>
+                </h1>
+                <p class="text-[10px] md:text-xs font-light tracking-[0.3em] text-gray-400 uppercase mt-2">
+                    GREETINGS FROM ANKIT
+                </p>
+            </div>
+            
+            <div class="glass-card rounded-2xl p-4 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+                <div class="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0 w-full no-scrollbar">
+                    <span class="text-xl sticky left-0 bg-white dark:bg-dark-card pl-2 z-10">📅</span>
+                    <div id="semesterButtons" class="flex gap-2 min-w-max"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 text-white p-6 shadow-lg shadow-red-500/20">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                    <p class="text-red-100 text-sm font-medium uppercase tracking-wide">Total Spent</p>
+                    <p id="semesterTotal" class="text-3xl font-bold mt-2">₹0.00</p>
+                    <div class="mt-4 text-xs text-red-100 bg-white/20 inline-block px-2 py-1 rounded">Semester Total</div>
+                </div>
+
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 shadow-lg shadow-green-500/20 group">
+                    <button onclick="editBudget()" class="absolute top-4 right-4 p-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition opacity-0 group-hover:opacity-100" title="Edit Income">✏️</button>
+                    <p class="text-green-100 text-sm font-medium uppercase tracking-wide">Total Income</p>
+                    <p id="budgetDisplay" class="text-3xl font-bold mt-2">₹0.00</p>
+                    <div class="mt-4 text-xs text-green-100 bg-white/20 inline-block px-2 py-1 rounded">Budget Set</div>
+                </div>
+
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 shadow-lg shadow-blue-500/20">
+                    <p class="text-blue-100 text-sm font-medium uppercase tracking-wide">Remaining Balance</p>
+                    <p id="balanceDisplay" class="text-3xl font-bold mt-2">₹0.00</p>
+                    <div id="balanceStatus" class="mt-4 text-xs text-blue-100 bg-white/20 inline-block px-2 py-1 rounded">Safe Zone</div>
+                </div>
+
+                <div class="rounded-2xl bg-white dark:bg-dark-card border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col justify-center">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm uppercase font-bold">DMart / Grocery</p>
+                        <span class="text-xl">🛒</span>
+                    </div>
+                    <p id="dmartTotal" class="text-3xl font-bold text-gray-800 dark:text-white">₹0.00</p>
+                    <p class="text-xs text-gray-400 mt-2">Track specific vendor</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-6 flex items-center gap-2">
+                        <span class="w-2 h-6 bg-blue-500 rounded-full"></span> Spending Breakdown
+                    </h3>
+                    <div class="chart-container"><canvas id="pieChart"></canvas></div>
+                </div>
+                <div class="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="font-bold text-gray-700 dark:text-gray-200 mb-6 flex items-center gap-2">
+                        <span class="w-2 h-6 bg-indigo-500 rounded-full"></span> Monthly Trend
+                    </h3>
+                    <div class="chart-container"><canvas id="lineChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <div class="lg:col-span-1 bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 h-fit sticky top-24">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Add New Expense</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Semester</label>
+                            <select id="semesterInput" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition">
+                                <option>Semester 1</option><option>Semester 2</option><option>Semester 3</option><option>Semester 4</option>
+                                <option>Semester 5</option><option>Semester 6</option><option>Semester 7</option><option>Semester 8</option>
+                            </select>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Category</label>
+                                <select id="categoryInput" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition">
+                                    <option>🎓 Fees</option><option>🏠 Hostel</option><option>🍽️ Mess</option><option>☕ Canteen</option>
+                                    <option>🛒 DMart</option><option>📚 Books</option><option>🚌 Transport</option><option>✏️ Stationery</option>
+                                    <option>👕 Shopping</option><option>⚕️ Medical</option><option>📦 Misc</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Amount</label>
+                                <input type="number" id="amountInput" placeholder="₹0" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Description</label>
+                            <input type="text" id="descriptionInput" placeholder="What did you buy?" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition">
+                        </div>
+                        
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Date</label>
+                            <input type="date" id="dateInput" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition">
+                        </div>
+
+                        <button onclick="addExpense()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200">
+                            Add Transaction
+                        </button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white">Recent Transactions</h2>
+                        
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Filter:</span>
+                            <select id="filterCategory" onchange="updateUI()" class="flex-1 sm:flex-none p-2 pl-3 pr-8 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="All">All Transactions</option>
+                                <option value="Fees">🎓 Fees</option><option value="Hostel">🏠 Hostel</option>
+                                <option value="Mess">🍽️ Mess</option><option value="Canteen">☕ Canteen</option>
+                                <option value="DMart">🛒 DMart</option><option value="Books">📚 Books</option>
+                                <option value="Transport">🚌 Transport</option><option value="Stationery">✏️ Stationery</option>
+                                <option value="Shopping">👕 Shopping</option><option value="Medical">⚕️ Medical</option>
+                                <option value="Miscellaneous">📦 Misc</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="expenseList" class="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } 
+            from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, remove, set } 
+            from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // ========================================================
+        // ⚠️ YOUR CONFIG
+        // ========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBl7OqpDAs3r46FOYDlPLcWc-r0DVc0ThM",
+            authDomain: "ankit-expense-tracker.firebaseapp.com",
+            databaseURL: "https://ankit-expense-tracker-default-rtdb.firebaseio.com",
+            projectId: "ankit-expense-tracker",
+            storageBucket: "ankit-expense-tracker.firebasestorage.app",
+            messagingSenderId: "998870681462",
+            appId: "1:998870681462:web:de879add41c7701de11c57",
+            measurementId: "G-9ERH215E71"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+        let expenses = [];
+        let semesterBudget = 0;
+        let currentSemester = 'Semester 1';
+        let pieChart, lineChart;
+
+        // --- THEME LOGIC ---
+        window.toggleTheme = () => {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                localStorage.setItem('theme', 'light');
+                icon.textContent = '🌙';
+            } else {
+                html.classList.add('dark');
+                html.classList.remove('light');
+                localStorage.setItem('theme', 'dark');
+                icon.textContent = '☀️';
+            }
+            updateChartTheme();
+        };
+
+        function initTheme() {
+            const saved = localStorage.getItem('theme') || 'light';
+            document.documentElement.classList.add(saved);
+            document.getElementById('themeIcon').textContent = saved === 'dark' ? '☀️' : '🌙';
+        }
+        initTheme();
+
+        // --- AUTH FUNCTIONS & MENU LOGIC ---
+        
+        window.toggleProfileMenu = () => {
+            const menu = document.getElementById('profileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            const menu = document.getElementById('profileMenu');
+            const btn = document.getElementById('profileBtn');
+            if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        window.loginWithGoogle = (forceSelect = false) => {
+            // If forcing selection (Add another account), trigger prompt
+            if (forceSelect) {
+                provider.setCustomParameters({ prompt: 'select_account' });
+            } else {
+                provider.setCustomParameters({ prompt: 'select_account' });
+            }
+
+            document.getElementById('loginStatus').classList.remove('hidden');
+            signInWithPopup(auth, provider)
+                .then(() => {
+                    // Refresh ensures UI clean state if switching accounts
+                    if(forceSelect) window.location.reload(); 
+                })
+                .catch((error) => {
+                    alert("Login Failed: " + error.message);
+                    document.getElementById('loginStatus').classList.add('hidden');
+                });
+        };
+
+        window.logout = () => {
+            signOut(auth).then(() => location.reload());
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('appScreen').classList.remove('hidden');
+                
+                // 1. Update Profile Pic
+                document.getElementById('userPhoto').src = user.photoURL;
+                
+                // 2. Update Menu Name
+                document.getElementById('menuUserName').textContent = user.displayName;
+
+                // 3. Update Big Greeting
+                const firstName = user.displayName.split(' ')[0];
+                document.getElementById('welcomeHeader').innerHTML = `Hello <span class="text-blue-600">${firstName}</span>`;
+                
+                initAppData(user.uid);
+            } else {
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('appScreen').classList.add('hidden');
+            }
+        });
+
+        // --- DATA FUNCTIONS ---
+        function initAppData(uid) {
+            document.getElementById('dateInput').valueAsDate = new Date();
+            renderSemesterButtons();
+            initCharts();
+
+            // Listen for Expenses
+            const expensesRef = ref(db, `users/${uid}/expenses`);
+            onValue(expensesRef, (snapshot) => {
+                const data = snapshot.val();
+                expenses = [];
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        expenses.push({ firebaseKey: key, ...data[key] });
+                    });
+                    expenses.sort((a, b) => b.id - a.id); // Sort by newest
+                }
+                updateUI();
+            });
+
+            // Listen for Budget (Income)
+            const budgetRef = ref(db, `users/${uid}/budgets/${currentSemester}`);
+            onValue(budgetRef, (snapshot) => {
+                semesterBudget = snapshot.val() || 0;
+                updateUI();
+            });
+        }
+
+        window.addExpense = () => {
+            if (!currentUser) return;
+            const description = document.getElementById('descriptionInput').value;
+            const amount = parseFloat(document.getElementById('amountInput').value);
+            
+            if (!description || !amount) { alert('Please fill details'); return; }
+
+            const newExpense = {
+                id: Date.now(),
+                semester: document.getElementById('semesterInput').value,
+                category: document.getElementById('categoryInput').value.split(' ')[1],
+                description,
+                amount,
+                date: document.getElementById('dateInput').value
+            };
+            push(ref(db, `users/${currentUser.uid}/expenses`), newExpense);
+            
+            // Reset fields
+            document.getElementById('descriptionInput').value = '';
+            document.getElementById('amountInput').value = '';
+        };
+
+        window.deleteExpense = (key) => {
+            if (!currentUser || !confirm("Delete this transaction?")) return;
+            remove(ref(db, `users/${currentUser.uid}/expenses/${key}`));
+        };
+
+        window.changeSemester = (sem) => {
+            currentSemester = sem;
+            document.getElementById('semesterInput').value = sem; // Sync input
+            
+            // Switch budget listener to new semester
+            if(currentUser) {
+                const budgetRef = ref(db, `users/${currentUser.uid}/budgets/${currentSemester}`);
+                onValue(budgetRef, (snapshot) => {
+                    semesterBudget = snapshot.val() || 0;
+                    renderSemesterButtons();
+                    updateUI();
+                });
+            } else {
+                renderSemesterButtons();
+                updateUI();
+            }
+        };
+
+        window.editBudget = () => {
+            const newBudget = prompt("Enter total income/budget for " + currentSemester + ":", semesterBudget);
+            if (newBudget !== null && !isNaN(newBudget)) {
+                semesterBudget = parseFloat(newBudget);
+                set(ref(db, `users/${currentUser.uid}/budgets/${currentSemester}`), semesterBudget);
+            }
+        }
+
+        // --- UI LOGIC ---
+        const categories = [
+            { name: 'Fees', color: '#3B82F6', icon: '🎓' }, { name: 'Hostel', color: '#8B5CF6', icon: '🏠' },
+            { name: 'Mess', color: '#10B981', icon: '🍽️' }, { name: 'Canteen', color: '#F59E0B', icon: '☕' },
+            { name: 'DMart', color: '#EC4899', icon: '🛒' }, { name: 'Books', color: '#EF4444', icon: '📚' },
+            { name: 'Transport', color: '#6366F1', icon: '🚌' }, { name: 'Stationery', color: '#F97316', icon: '✏️' },
+            { name: 'Shopping', color: '#F472B6', icon: '👕' }, { name: 'Medical', color: '#14B8A6', icon: '⚕️' },
+            { name: 'Miscellaneous', color: '#6B7280', icon: '📦' }
+        ];
+        const semesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Semester 5', 'Semester 6', 'Semester 7', 'Semester 8'];
+
+        function renderSemesterButtons() {
+            document.getElementById('semesterButtons').innerHTML = semesters.map(sem => `
+                <button onclick="changeSemester('${sem}')" class="px-4 py-2 text-sm rounded-xl font-medium transition-all ${currentSemester === sem ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}">
+                    ${sem.replace('Semester ', 'Sem ')}
+                </button>
+            `).join('');
+        }
+
+        window.updateUI = () => {
+            const filterVal = document.getElementById('filterCategory').value;
+            
+            // 1. Data for Statistics (Always All Categories for selected Semester)
+            const semExpenses = expenses.filter(e => e.semester === currentSemester);
+            
+            // 2. Data for List (Filtered by Category selector)
+            let listExpenses = semExpenses;
+            if (filterVal !== 'All') {
+                listExpenses = semExpenses.filter(e => e.category === filterVal);
+            }
+
+            const total = semExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const dmart = semExpenses.filter(e => e.category === 'DMart').reduce((sum, e) => sum + e.amount, 0);
+            const balance = semesterBudget - total;
+
+            // Update Top Cards
+            document.getElementById('semesterTotal').textContent = `₹${total.toLocaleString('en-IN')}`;
+            document.getElementById('dmartTotal').textContent = `₹${dmart.toLocaleString('en-IN')}`;
+            document.getElementById('budgetDisplay').textContent = `₹${semesterBudget.toLocaleString('en-IN')}`;
+            
+            const balEl = document.getElementById('balanceDisplay');
+            balEl.textContent = `₹${balance.toLocaleString('en-IN')}`;
+            
+            // Balance Color Logic
+            const statusEl = document.getElementById('balanceStatus');
+            if (balance < 0) {
+                balEl.parentElement.classList.remove('from-blue-500', 'to-indigo-600');
+                balEl.parentElement.classList.add('from-red-600', 'to-orange-600');
+                statusEl.textContent = "Over Budget!";
+            } else {
+                balEl.parentElement.classList.add('from-blue-500', 'to-indigo-600');
+                balEl.parentElement.classList.remove('from-red-600', 'to-orange-600');
+                statusEl.textContent = "Safe Zone";
+            }
+
+            // Update List
+            document.getElementById('expenseList').innerHTML = listExpenses.map(exp => {
+                const cat = categories.find(c => c.name === exp.category) || categories[10];
+                return `
+                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group border border-transparent hover:border-blue-200 dark:hover:border-blue-900">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-white dark:bg-gray-700 shadow-sm text-2xl">${cat.icon}</div>
+                            <div>
+                                <p class="font-bold text-gray-800 dark:text-gray-100">${exp.description}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">${exp.date} • <span class="font-semibold text-blue-600 dark:text-blue-400">${exp.category}</span></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-bold text-gray-800 dark:text-gray-100 text-lg">₹${exp.amount}</span>
+                            <button onclick="deleteExpense('${exp.firebaseKey}')" class="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<div class="text-center py-12 text-gray-400 dark:text-gray-600 italic">No transactions found</div>';
+
+            updateCharts(semExpenses);
+        };
+
+        // --- CHARTS ---
+        function initCharts() {
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = 'Outfit';
+            
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            const lineCtx = document.getElementById('lineChart').getContext('2d');
+            
+            pieChart = new Chart(pieCtx, { 
+                type: 'doughnut', 
+                data: { labels: [], datasets: [{ data: [], borderWidth: 0, hoverOffset: 10 }] }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    cutout: '70%',
+                    plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 10 } } } 
+                } 
+            });
+
+            lineChart = new Chart(lineCtx, { 
+                type: 'line', 
+                data: { labels: [], datasets: [{ label: 'Spend', data: [], borderColor: '#3B82F6', tension: 0.4, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)' }] }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }, 
+                    plugins: { legend: { display: false } } 
+                } 
+            });
+        }
+
+        function updateCharts(data) {
+            // Pie Logic
+            const cats = {};
+            data.forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
+            pieChart.data.labels = Object.keys(cats);
+            pieChart.data.datasets[0].data = Object.values(cats);
+            pieChart.data.datasets[0].backgroundColor = Object.keys(cats).map(k => categories.find(c => c.name === k)?.color || '#ccc');
+            pieChart.update();
+
+            // Line Logic
+            const months = {};
+            data.forEach(e => { const m = e.date.slice(0, 7); months[m] = (months[m] || 0) + e.amount; });
+            const sorted = Object.keys(months).sort();
+            lineChart.data.labels = sorted.map(m => new Date(m).toLocaleString('default', { month: 'short' }));
+            lineChart.data.datasets[0].data = sorted.map(m => months[m]);
+            lineChart.update();
+        }
+
+        function updateChartTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const textColor = isDark ? '#cbd5e1' : '#64748b';
+            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+            
+            if(pieChart) { pieChart.options.plugins.legend.labels.color = textColor; pieChart.update(); }
+            if(lineChart) { 
+                lineChart.options.scales.x.ticks.color = textColor;
+                lineChart.options.scales.y.ticks.color = textColor;
+                lineChart.options.scales.y.grid.color = gridColor;
+                lineChart.update(); 
+            }
+        }
+    </script>
+</body>
+</html>
