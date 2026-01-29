@@ -4,27 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker Buddy</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="styles.css" rel="stylesheet">
+    <script src="js/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"> -->
+    <!-- <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest"> -->
     
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
-                    colors: {
-                        dark: {
-                            bg: '#0f172a',
-                            card: '#1e293b',
-                            text: '#f1f5f9'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+
     <style>
         body { transition: background-color 0.3s, color 0.3s; }
         .chart-container { position: relative; height: 300px; }
@@ -53,7 +42,7 @@
             <div class="inline-block p-4 rounded-full bg-blue-600/20 mb-2">
                 <span class="text-6xl">💎</span>
             </div>
-            <h1 class="text-4xl font-bold tracking-tight text-white">Expense Tracker Buddy <span class="text-blue-400">Pro</span></h1>
+            <h1 class="text-4xl font-bold tracking-tight text-white">Expense Tracker Buddy</h1>
             <p class="text-lg text-gray-200">Master your student finances with style.</p>
             <button onclick="loginWithGoogle()" class="w-full group relative flex items-center justify-center gap-3 bg-white text-gray-900 px-8 py-4 rounded-xl text-lg font-bold shadow-lg hover:bg-gray-100 hover:scale-[1.02] transition-all duration-200">
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
@@ -170,9 +159,9 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                <div class="lg:col-span-1 bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 h-fit sticky top-24">
+                <div class="lg:col-span-1 bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 h-fit lg:sticky lg:top-24">
                     <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">Add New Expense</h2>
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                         <div>
                             <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Semester</label>
                             <select id="semesterInput" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition">
@@ -186,7 +175,7 @@
                                 <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase ml-1">Category</label>
                                 <select id="categoryInput" class="w-full mt-1 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition">
                                     <option>🎓 Fees</option><option>🏠 Hostel</option><option>🍽️ Mess</option><option>☕ Canteen</option>
-                                    <option>🛒 DMart</option><option>📚 Books</option><option>🚌 Transport</option><option>✏️ Stationery</option>
+                                    <option>🛒 DMart</option><option>💪 Gym</option><option>🚌 Transport</option><option>✏️ Stationery</option>
                                     <option>👕 Shopping</option><option>⚕️ Medical</option><option>📦 Misc</option>
                                 </select>
                             </div>
@@ -222,7 +211,7 @@
                                 <option value="All">All Transactions</option>
                                 <option value="Fees">🎓 Fees</option><option value="Hostel">🏠 Hostel</option>
                                 <option value="Mess">🍽️ Mess</option><option value="Canteen">☕ Canteen</option>
-                                <option value="DMart">🛒 DMart</option><option value="Books">📚 Books</option>
+                                <option value="DMart">🛒 DMart</option><option value="Gym">💪 Gym</option>
                                 <option value="Transport">🚌 Transport</option><option value="Stationery">✏️ Stationery</option>
                                 <option value="Shopping">👕 Shopping</option><option value="Medical">⚕️ Medical</option>
                                 <option value="Miscellaneous">📦 Misc</option>
@@ -230,7 +219,7 @@
                         </div>
                     </div>
                     
-                    <div id="expenseList" class="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div id="expenseList" class="space-y-4">
                         </div>
                 </div>
             </div>
@@ -239,7 +228,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } 
+        // CHANGED: Imported setPersistence, browserLocalPersistence, and switched back to signInWithPopup
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } 
             from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, push, onValue, remove, set } 
             from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -301,7 +291,6 @@
             menu.classList.toggle('hidden');
         }
 
-        // Close dropdown when clicking outside
         window.addEventListener('click', (e) => {
             const menu = document.getElementById('profileMenu');
             const btn = document.getElementById('profileBtn');
@@ -310,19 +299,25 @@
             }
         });
 
+        // --- CHANGED LOGIN LOGIC ---
         window.loginWithGoogle = (forceSelect = false) => {
-            // If forcing selection (Add another account), trigger prompt
-            if (forceSelect) {
-                provider.setCustomParameters({ prompt: 'select_account' });
-            } else {
-                provider.setCustomParameters({ prompt: 'select_account' });
-            }
-
             document.getElementById('loginStatus').classList.remove('hidden');
-            signInWithPopup(auth, provider)
+            document.getElementById('loginStatus').innerText = "Connecting...";
+
+            // 1. Force Persistence (Fixes the login loop issue)
+            setPersistence(auth, browserLocalPersistence)
                 .then(() => {
-                    // Refresh ensures UI clean state if switching accounts
-                    if(forceSelect) window.location.reload(); 
+                    // 2. Set Prompt
+                    provider.setCustomParameters({ prompt: 'select_account' });
+                    
+                    // 3. Use POPUP (Best for stability with persistence)
+                    return signInWithPopup(auth, provider);
+                })
+                .then((result) => {
+                    if(forceSelect) {
+                        window.location.reload(); 
+                    }
+                    // onAuthStateChanged will handle the rest
                 })
                 .catch((error) => {
                     alert("Login Failed: " + error.message);
@@ -335,6 +330,8 @@
         };
 
         onAuthStateChanged(auth, (user) => {
+            document.getElementById('loginStatus').classList.add('hidden');
+
             if (user) {
                 currentUser = user;
                 document.getElementById('loginScreen').classList.add('hidden');
@@ -363,7 +360,6 @@
             renderSemesterButtons();
             initCharts();
 
-            // Listen for Expenses
             const expensesRef = ref(db, `users/${uid}/expenses`);
             onValue(expensesRef, (snapshot) => {
                 const data = snapshot.val();
@@ -372,12 +368,11 @@
                     Object.keys(data).forEach(key => {
                         expenses.push({ firebaseKey: key, ...data[key] });
                     });
-                    expenses.sort((a, b) => b.id - a.id); // Sort by newest
+                    expenses.sort((a, b) => b.id - a.id);
                 }
                 updateUI();
             });
 
-            // Listen for Budget (Income)
             const budgetRef = ref(db, `users/${uid}/budgets/${currentSemester}`);
             onValue(budgetRef, (snapshot) => {
                 semesterBudget = snapshot.val() || 0;
@@ -402,7 +397,6 @@
             };
             push(ref(db, `users/${currentUser.uid}/expenses`), newExpense);
             
-            // Reset fields
             document.getElementById('descriptionInput').value = '';
             document.getElementById('amountInput').value = '';
         };
@@ -414,9 +408,8 @@
 
         window.changeSemester = (sem) => {
             currentSemester = sem;
-            document.getElementById('semesterInput').value = sem; // Sync input
+            document.getElementById('semesterInput').value = sem;
             
-            // Switch budget listener to new semester
             if(currentUser) {
                 const budgetRef = ref(db, `users/${currentUser.uid}/budgets/${currentSemester}`);
                 onValue(budgetRef, (snapshot) => {
@@ -442,7 +435,7 @@
         const categories = [
             { name: 'Fees', color: '#3B82F6', icon: '🎓' }, { name: 'Hostel', color: '#8B5CF6', icon: '🏠' },
             { name: 'Mess', color: '#10B981', icon: '🍽️' }, { name: 'Canteen', color: '#F59E0B', icon: '☕' },
-            { name: 'DMart', color: '#EC4899', icon: '🛒' }, { name: 'Books', color: '#EF4444', icon: '📚' },
+            { name: 'DMart', color: '#EC4899', icon: '🛒' }, { name: 'Gym', color: '#EF4444', icon: '💪' },
             { name: 'Transport', color: '#6366F1', icon: '🚌' }, { name: 'Stationery', color: '#F97316', icon: '✏️' },
             { name: 'Shopping', color: '#F472B6', icon: '👕' }, { name: 'Medical', color: '#14B8A6', icon: '⚕️' },
             { name: 'Miscellaneous', color: '#6B7280', icon: '📦' }
@@ -459,11 +452,7 @@
 
         window.updateUI = () => {
             const filterVal = document.getElementById('filterCategory').value;
-            
-            // 1. Data for Statistics (Always All Categories for selected Semester)
             const semExpenses = expenses.filter(e => e.semester === currentSemester);
-            
-            // 2. Data for List (Filtered by Category selector)
             let listExpenses = semExpenses;
             if (filterVal !== 'All') {
                 listExpenses = semExpenses.filter(e => e.category === filterVal);
@@ -473,7 +462,6 @@
             const dmart = semExpenses.filter(e => e.category === 'DMart').reduce((sum, e) => sum + e.amount, 0);
             const balance = semesterBudget - total;
 
-            // Update Top Cards
             document.getElementById('semesterTotal').textContent = `₹${total.toLocaleString('en-IN')}`;
             document.getElementById('dmartTotal').textContent = `₹${dmart.toLocaleString('en-IN')}`;
             document.getElementById('budgetDisplay').textContent = `₹${semesterBudget.toLocaleString('en-IN')}`;
@@ -481,7 +469,6 @@
             const balEl = document.getElementById('balanceDisplay');
             balEl.textContent = `₹${balance.toLocaleString('en-IN')}`;
             
-            // Balance Color Logic
             const statusEl = document.getElementById('balanceStatus');
             if (balance < 0) {
                 balEl.parentElement.classList.remove('from-blue-500', 'to-indigo-600');
@@ -493,7 +480,6 @@
                 statusEl.textContent = "Safe Zone";
             }
 
-            // Update List
             document.getElementById('expenseList').innerHTML = listExpenses.map(exp => {
                 const cat = categories.find(c => c.name === exp.category) || categories[10];
                 return `
@@ -516,7 +502,6 @@
             updateCharts(semExpenses);
         };
 
-        // --- CHARTS ---
         function initCharts() {
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = 'Outfit';
@@ -548,7 +533,6 @@
         }
 
         function updateCharts(data) {
-            // Pie Logic
             const cats = {};
             data.forEach(e => { cats[e.category] = (cats[e.category] || 0) + e.amount; });
             pieChart.data.labels = Object.keys(cats);
@@ -556,7 +540,6 @@
             pieChart.data.datasets[0].backgroundColor = Object.keys(cats).map(k => categories.find(c => c.name === k)?.color || '#ccc');
             pieChart.update();
 
-            // Line Logic
             const months = {};
             data.forEach(e => { const m = e.date.slice(0, 7); months[m] = (months[m] || 0) + e.amount; });
             const sorted = Object.keys(months).sort();
@@ -579,5 +562,14 @@
             }
         }
     </script>
+    <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").then(() => {
+        console.log("Service Worker registered!");
+      });
+    });
+  }
+</script>
 </body>
 </html>
