@@ -6,7 +6,7 @@
 **Expense Tracker Buddy** is a modern, minimal, and futuristic expense management application designed for students and professionals. Built with a focus on ease of use, it allows users to track expenses and income across multiple semesters with beautiful visualizations and a premium "glassmorphism" interface.
 
 <p align="center">
-  <img src="assets/icon.png" width="150" alt="Expense Tracker Buddy Logo">
+  <img src="android\app\src\main\res\drawable/icon.png" width="150" alt="Expense Tracker Buddy Logo">
 </p>
 
 ## ✨ Features
